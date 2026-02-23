@@ -85,9 +85,17 @@ export default function EmployeeDashboard() {
 
     return (
         <div className="container animate-fade-in" style={{ paddingBottom: '4rem' }}>
-            <h1 className="page-title" style={{ textAlign: 'left', marginBottom: '1rem', color: '#10b981' }}>
-                👋 Welcome Back, {employee.corrected_name.split(' ')[0] || 'Employee'}
-            </h1>
+            <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{ fontSize: '3.5rem', lineHeight: '1' }}>👋</div>
+                <div>
+                    <h1 className="page-title" style={{ textAlign: 'left', margin: 0, color: 'white', fontSize: '2rem' }}>
+                        Welcome Back,
+                    </h1>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', marginTop: '0.25rem' }}>
+                        {employee.corrected_name || 'Employee'}
+                    </div>
+                </div>
+            </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
                 Your personal digital portal. Here you can view your official payroll data, access historical payslips, and manage your tax declarations.
             </p>
@@ -131,7 +139,7 @@ export default function EmployeeDashboard() {
                         >
                             <div style={{ fontSize: '2rem' }}>📄</div>
                             <div>
-                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Download Payslips</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white', marginBottom: '0.2rem' }}>Download Payslips</div>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Get official PDF copies of your historical salary slips.</div>
                             </div>
                         </button>
@@ -143,7 +151,7 @@ export default function EmployeeDashboard() {
                         >
                             <div style={{ fontSize: '2rem' }}>💰</div>
                             <div>
-                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Declare Tax Savings</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white', marginBottom: '0.2rem' }}>Declare Tax Savings</div>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Submit your HRA, LIC, and Section 80C/80D amounts.</div>
                             </div>
                         </button>
@@ -155,7 +163,7 @@ export default function EmployeeDashboard() {
                         >
                             <div style={{ fontSize: '2rem' }}>⚖️</div>
                             <div>
-                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>My Form 16 & Tax Info</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white', marginBottom: '0.2rem' }}>My Form 16 & Tax Info</div>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>View AI live projections and download official Form 16.</div>
                             </div>
                         </button>
