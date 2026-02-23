@@ -10,6 +10,7 @@ interface Employee {
     corrected_name: string;
     pan_number: string;
     hrpn: string;
+    email?: string;
 }
 
 export default function AdminPage() {
@@ -19,20 +20,40 @@ export default function AdminPage() {
     const [syncing, setSyncing] = useState(false);
     const [syncMessage, setSyncMessage] = useState('');
 
+    // Month deletion state
+    const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+    const [deleteMonth, setDeleteMonth] = useState('');
+    const [isDeletingMonth, setIsDeletingMonth] = useState(false);
+    const [deleteMonthMsg, setDeleteMonthMsg] = useState('');
+
     // Form State
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         original_name: '',
         corrected_name: '',
         pan_number: '',
-        hrpn: ''
+        hrpn: '',
+        email: ''
     });
 
     const supabase = createClient();
 
     useEffect(() => {
         fetchEmployees();
+        fetchAvailableMonths();
     }, []);
+
+    const fetchAvailableMonths = async () => {
+        const { data, error } = await supabase
+            .from('payroll_records')
+            .select('month_date')
+            .order('month_date', { ascending: false });
+
+        if (!error && data) {
+            const uniqueMonths = [...new Set(data.map(r => r.month_date))];
+            setAvailableMonths(uniqueMonths);
+        }
+    };
 
     const fetchEmployees = async () => {
         setLoading(true);
@@ -84,6 +105,7 @@ export default function AdminPage() {
                 corrected_name: formData.corrected_name,
                 pan_number: formData.pan_number || null,
                 hrpn: formData.hrpn || null,
+                email: formData.email ? formData.email.toLowerCase() : null,
                 original_name: formData.original_name || formData.corrected_name
             };
 
@@ -100,7 +122,7 @@ export default function AdminPage() {
                 if (error) throw error;
             }
 
-            setFormData({ original_name: '', corrected_name: '', pan_number: '', hrpn: '' });
+            setFormData({ original_name: '', corrected_name: '', pan_number: '', hrpn: '', email: '' });
             setEditingId(null);
             fetchEmployees();
         } catch (error: any) {
@@ -122,7 +144,8 @@ export default function AdminPage() {
             original_name: emp.original_name || '',
             corrected_name: emp.corrected_name,
             pan_number: emp.pan_number || '',
-            hrpn: emp.hrpn || ''
+            hrpn: emp.hrpn || '',
+            email: emp.email || ''
         });
         // Scroll to top on mobile
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -182,6 +205,46 @@ export default function AdminPage() {
     };
 
     // ================================================================
+    // DELETE MONTH DATA
+    // ================================================================
+    const formatMonthLabel = (dateStr: string): string => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    };
+
+    const handleDeleteMonthData = async () => {
+        if (!deleteMonth) {
+            alert('Please select a month to delete.');
+            return;
+        }
+
+        if (!confirm(`Are you absolutely sure you want to delete ALL payroll records for ${formatMonthLabel(deleteMonth)}? This cannot be undone.`)) {
+            return;
+        }
+
+        setIsDeletingMonth(true);
+        setDeleteMonthMsg('');
+
+        try {
+            const { error } = await supabase
+                .from('payroll_records')
+                .delete()
+                .eq('month_date', deleteMonth);
+
+            if (error) throw error;
+
+            setDeleteMonthMsg(`✅ Successfully deleted all records for ${formatMonthLabel(deleteMonth)}.`);
+            setDeleteMonth('');
+            fetchAvailableMonths(); // refresh list
+        } catch (error: any) {
+            setDeleteMonthMsg(`❌ Error deleting records: ${error.message}`);
+        } finally {
+            setIsDeletingMonth(false);
+        }
+    };
+
+    // ================================================================
     // AUTO-SYNC: Pull unique employees from payroll_records into employees table
     // This finds HRPNs in payroll_records that don't exist in employees yet
     // ================================================================
@@ -222,7 +285,8 @@ export default function AdminPage() {
                         hrpn,
                         original_name: info.name,
                         corrected_name: info.name,
-                        pan_number: null
+                        pan_number: null,
+                        email: null
                     });
                 }
             });
@@ -255,7 +319,8 @@ export default function AdminPage() {
             (e.corrected_name || '').toLowerCase().includes(term) ||
             (e.original_name || '').toLowerCase().includes(term) ||
             (e.hrpn || '').includes(term) ||
-            (e.pan_number || '').toLowerCase().includes(term)
+            (e.pan_number || '').toLowerCase().includes(term) ||
+            (e.email || '').toLowerCase().includes(term)
         );
     });
 
@@ -358,6 +423,18 @@ export default function AdminPage() {
                                     style={{ fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '2px' }}
                                 />
                             </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.4rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                    Email Address (For Portal Login)
+                                </label>
+                                <input
+                                    type="email"
+                                    className="input-field"
+                                    value={formData.email}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="employee@ssgh.com"
+                                />
+                            </div>
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
                                 <button type="submit" className="btn btn-primary w-full">
                                     {editingId ? 'Update' : 'Add Employee'}
@@ -365,7 +442,7 @@ export default function AdminPage() {
                                 {editingId && (
                                     <button type="button" className="btn btn-secondary" onClick={() => {
                                         setEditingId(null);
-                                        setFormData({ original_name: '', corrected_name: '', pan_number: '', hrpn: '' });
+                                        setFormData({ original_name: '', corrected_name: '', pan_number: '', hrpn: '', email: '' });
                                     }}>
                                         Cancel
                                     </button>
@@ -400,6 +477,56 @@ export default function AdminPage() {
                                 color: syncMessage.includes('✅') ? '#10b981' : '#ef4444'
                             }}>
                                 {syncMessage}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Delete Payroll Data */}
+                    <div className="glass-panel" style={{ borderTop: '3px solid #ef4444', marginTop: '1rem' }}>
+                        <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
+                            ⚠️ Delete Month Data
+                        </h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1rem' }}>
+                            If data was extracted incorrectly, you can delete all records for a specific month and re-upload.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <select
+                                className="input-field"
+                                value={deleteMonth}
+                                onChange={(e) => setDeleteMonth(e.target.value)}
+                                style={{ flex: 1, padding: '0.5rem', appearance: 'auto' }}
+                            >
+                                <option value="">-- Select Month to Delete --</option>
+                                {availableMonths.map(m => (
+                                    <option key={m} value={m}>{formatMonthLabel(m)}</option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={handleDeleteMonthData}
+                                disabled={isDeletingMonth || !deleteMonth}
+                                className="btn"
+                                style={{
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    opacity: (isDeletingMonth || !deleteMonth) ? 0.5 : 1,
+                                    padding: '0.5rem 1rem'
+                                }}
+                            >
+                                {isDeletingMonth ? '⏳...' : '🗑️ Delete'}
+                            </button>
+                        </div>
+
+                        {deleteMonthMsg && (
+                            <div style={{
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.8rem',
+                                background: deleteMonthMsg.includes('✅') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: deleteMonthMsg.includes('✅') ? '#10b981' : '#ef4444'
+                            }}>
+                                {deleteMonthMsg}
                             </div>
                         )}
                     </div>
@@ -466,8 +593,13 @@ export default function AdminPage() {
                                             </td>
                                             <td>
                                                 <div style={{ fontWeight: 600 }}>{e.corrected_name}</div>
+                                                {e.email && (
+                                                    <div style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.2rem' }}>
+                                                        📧 {e.email}
+                                                    </div>
+                                                )}
                                                 {e.original_name && e.original_name !== e.corrected_name && (
-                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
                                                         PDF: {e.original_name}
                                                     </div>
                                                 )}

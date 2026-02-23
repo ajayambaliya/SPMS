@@ -21,8 +21,10 @@ $Excludes = @(
     ".git",
     "out",
     "build",
+    "data",
     "*.log",
     "*.zip",
+    "result.json",
     "package-lock.json" # Users should regenerate this with npm install
 )
 
@@ -36,8 +38,8 @@ $RobocopyArgs = @(
     $SourcePath,
     $TempPath,
     "/MIR",
-    "/XD", "node_modules", ".next", ".vercel", ".git", "out", "build",
-    "/XF", "*.log", "*.zip", ".DS_Store"
+    "/XD", "node_modules", ".next", ".vercel", ".git", "out", "build", "data",
+    "/XF", "*.log", "*.zip", ".DS_Store", "result.json"
 )
 
 # Run Robocopy (ignore exit codes < 8 which are success codes in robocopy)

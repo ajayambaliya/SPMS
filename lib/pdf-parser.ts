@@ -64,13 +64,14 @@ export interface ParsedEmployee {
     hrpn: string;
     name: string;
     designation: string;
-    values: number[];
+    values: Array<{ value: number, x: number }>;
 }
 
 export interface NormalizedHeader {
     raw: string;
     canonical: string;
     category: string;
+    x: number;
 }
 
 export interface SinglePdfResult {
@@ -81,10 +82,10 @@ export interface SinglePdfResult {
         name: string;
         designation: string;
         fields: Record<string, number>;
-        rawValues: number[];
+        rawValues: Array<{ value: number, x: number }>;
     }>;
     totalRow: { rawText: string; page: number; values: number[] } | null;
-    headers: string[];
+    headers: Array<{ label: string, x: number }>;
     normalizedHeaders: NormalizedHeader[];
 }
 
@@ -289,8 +290,7 @@ function getEarningDetectors() {
                 return findByKeyword(items, /Recovery/i);
             }
         },
-        { label: 'Gross Amt', detect: (items: any[], text: string) => findByKeyword(items, /Gross/i) },
-        { label: 'SLO', detect: (items: any[], text: string) => findByKeyword(items, /^SLO$/i) }
+        { label: 'Gross Amt', detect: (items: any[], text: string) => findByKeyword(items, /Gross/i) }
     ];
 }
 
@@ -304,10 +304,16 @@ function getDeductionDetectors() {
             label: 'GPF Reg',
             detect: (items: any[], text: string) => {
                 if (/GPF\s*Reg/i.test(text) || /9670/.test(text)) {
-                    const gpf = findItemByText(items, /GPF/i);
-                    if (gpf) return { found: true, x: gpf.x };
+                    // Search for 9670 code explicitly first
                     const code = findItemByText(items, /9670/);
                     if (code) return { found: true, x: code.x };
+
+                    // Find pure GPF block, ignoring Class 4 hits
+                    for (const item of items) {
+                        if (/GPF/i.test(item.text) && !/Class/i.test(item.text) && !/9531/.test(item.text)) {
+                            return { found: true, x: item.x };
+                        }
+                    }
                 }
                 return { found: false, x: 0 };
             }
@@ -363,7 +369,7 @@ function parseHeadersSmart(pageLines: TextLine[], pdfType: string) {
     }
 
     if (headerItems.length === 0) {
-        return { headers: [] as string[], isValid: false, rawHeaderText: '' };
+        return { headers: [] as Array<{ label: string, x: number }>, isValid: false, rawHeaderText: '' };
     }
 
     const rawHeaderText = headerItems.map(i => i.text).join(' ');
@@ -380,7 +386,7 @@ function parseHeadersSmart(pageLines: TextLine[], pdfType: string) {
     foundHeaders.sort((a, b) => a.x - b.x);
 
     return {
-        headers: foundHeaders.map(h => h.label),
+        headers: foundHeaders, // Now returns Array<{label: string, x: number}>
         isValid: foundHeaders.length > 0,
         rawHeaderText
     };
@@ -487,8 +493,8 @@ function segmentRows(pages: PageData[]) {
 
             for (let i = dataIdx + 1; i < nextBoundary; i++) {
                 const lineText = lines[i].text.trim();
-                if (isSkipLine(lineText)) continue;
                 if (/^total\b/i.test(lineText)) break;
+                if (isSkipLine(lineText)) continue;
                 if (isNamePrefixLine(lineText)) break;
                 blockLines.push(lines[i]);
             }
@@ -580,10 +586,20 @@ function findDesignation(text: string): { designation: string; namePart: string;
 function parseEmployeeBlock(block: EmployeeBlock, pdfType: string): ParsedEmployee {
     const { srNo, hrpn, rawLines, dataLine } = block;
 
+    if (hrpn === '20032953') {
+        const fs = typeof window === 'undefined' ? require('fs') : null;
+        let out = `\n\n[DEBUG HRPN: 20032953, Type: ${pdfType}]\n`;
+        out += `DataLine: "${dataLine.text}"\n`;
+        out += "RawLines:\n";
+        rawLines.forEach((rl, i) => out += `  ${i}: "${rl.text}" (Y=${rl.y})\n`);
+        if (fs) fs.appendFileSync('debug_hrpn.txt', out);
+    }
+
     const namesBefore: string[] = [];
     const namesAfter: string[] = [];
     let designation = '';
     let foundDataLine = false;
+    let extraNumericValues: number[] = [];
 
     for (const line of rawLines) {
         if (line === dataLine) {
@@ -593,6 +609,12 @@ function parseEmployeeBlock(block: EmployeeBlock, pdfType: string): ParsedEmploy
 
         const text = line.text.trim();
         if (isPayScale(text)) continue;
+
+        // Catch lines that are entirely numeric
+        if (/^[-.\d\s]+$/.test(text) && /\d/.test(text)) {
+            // we will handle this in item scanning later for precision
+            continue;
+        }
 
         const cleaned = removePayScaleFromLine(text);
         if (/^\(.*\)$/.test(cleaned)) {
@@ -671,14 +693,37 @@ function parseEmployeeBlock(block: EmployeeBlock, pdfType: string): ParsedEmploy
     let fullName = allNameParts.join(' ').replace(/\s+/g, ' ').trim();
     fullName = removePayScaleFromLine(fullName).replace(/\s+/g, ' ').trim();
 
-    const numericPart = numericStartIdx >= 0 ? tokens.slice(numericStartIdx).join(' ') : '';
-    const values: number[] = [];
-    const numMatches = numericPart.match(/-?\d+\.?\d*/g) || [];
-    for (const m of numMatches) {
-        values.push(parseFloat(m));
+    // SMART NUMBER EXTRACTION via coordinates
+    const extractedNumericItems: Array<{ value: number, x: number }> = [];
+
+    for (const line of rawLines) {
+        for (const item of line.items) {
+            const text = item.text.trim();
+            if (!text) continue;
+
+            const splitTokens = text.split(/\s+/);
+            let currentX = item.x;
+            const estWidth = splitTokens.length > 0 ? (item.width || 0) / splitTokens.length : 0;
+
+            for (const token of splitTokens) {
+                const cleaned = token.replace(/,/g, '');
+                if (/^-?\d+(\.\d+)?$/.test(cleaned)) {
+                    if (cleaned === hrpn || cleaned === String(srNo)) {
+                        // Skip HRPN or SrNo
+                    } else if (cleaned.length === 4 && /^20[12]\d$/.test(cleaned) && !cleaned.includes('.')) {
+                        // Skip isolated years like 2024
+                    } else if (cleaned.length === 10 && !cleaned.includes('.')) {
+                        // Skip long 10-digit integers like phone numbers without decimals
+                    } else {
+                        extractedNumericItems.push({ value: parseFloat(cleaned), x: currentX });
+                    }
+                }
+                currentX += estWidth;
+            }
+        }
     }
 
-    return { srNo, hrpn, name: fullName, designation: designation || '', values };
+    return { srNo: Number(srNo), hrpn, name: fullName, designation: designation || '', values: extractedNumericItems };
 }
 
 // ============================================================
@@ -731,14 +776,37 @@ function normalizeHeader(rawHeader: string): { canonical: string; category: stri
     return { canonical: fallback || 'unknown', category: 'unknown' };
 }
 
-function normalizeFields(headers: string[], values: number[]): Record<string, number> {
+function normalizeFields(headers: Array<{ canonical: string, x: number }>, values: Array<{ value: number, x: number }>): Record<string, number> {
     const record: Record<string, number> = {};
-    for (let i = 0; i < headers.length; i++) {
-        const header = headers[i];
-        const value = i < values.length ? values[i] : 0;
-        const normalized = normalizeHeader(header);
-        record[normalized.canonical] = value;
+
+    // Sort values strictly by X to ensure we can map closest reliably
+    const sortedValues = [...values].sort((a, b) => a.x - b.x);
+
+    for (const header of headers) {
+        let bestMatchIdx = -1;
+        let minDiff = 10000;
+
+        for (let i = 0; i < sortedValues.length; i++) {
+            const val = sortedValues[i];
+            const diff = Math.abs(header.x - val.x);
+            // If the value is reasonably close to the header column (e.g. within 150 units)
+            // or if it's the absolute closest, we might match it. 
+            // In a table, usually the absolute closest match is correct.
+            if (diff < minDiff && diff < 150) {
+                minDiff = diff;
+                bestMatchIdx = i;
+            }
+        }
+
+        if (bestMatchIdx !== -1) {
+            record[header.canonical] = sortedValues[bestMatchIdx].value;
+            // Remove it so it doesn't get assigned to another column
+            sortedValues.splice(bestMatchIdx, 1);
+        } else {
+            record[header.canonical] = 0;
+        }
     }
+
     return record;
 }
 
@@ -901,8 +969,9 @@ async function parseSinglePDF(fileName: string, fileBuffer: ArrayBuffer, onProgr
     const headerResult = parseHeadersSmart(extracted.pages[0].lines, meta.type);
 
     const normalizedHeaders: NormalizedHeader[] = headerResult.headers.map(h => ({
-        raw: h,
-        ...normalizeHeader(h)
+        raw: h.label,
+        x: h.x,
+        ...normalizeHeader(h.label)
     }));
 
     onProgress?.('Segmenting', `Segmenting employee rows from ${fileName}...`);
@@ -914,7 +983,7 @@ async function parseSinglePDF(fileName: string, fileBuffer: ArrayBuffer, onProgr
     for (const block of employees) {
         const parsed = parseEmployeeBlock(block, meta.type);
         const fields = normalizeFields(
-            normalizedHeaders.map(h => h.canonical),
+            normalizedHeaders,
             parsed.values
         );
         records.push({

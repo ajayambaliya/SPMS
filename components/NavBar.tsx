@@ -11,12 +11,24 @@ export default function Navbar() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        router.push('/');
+        router.push(pathname.startsWith('/portal') ? '/portal/login' : '/');
     };
+
+    const linkStyle = (active: boolean): React.CSSProperties => ({
+        color: active ? 'white' : 'var(--text-muted)',
+        textDecoration: 'none',
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        padding: '0.5rem 1rem',
+        borderRadius: '0.5rem',
+        transition: 'all 0.2s'
+    });
 
     const isActive = (path: string) => pathname === path;
 
-    if (pathname === '/') return null;
+    if (pathname === '/' || pathname === '/portal/login') return null;
+
+    const isEmployeePortal = pathname.startsWith('/portal');
 
     return (
         <nav className="glass-panel" style={{
@@ -45,52 +57,45 @@ export default function Navbar() {
                 <span style={{ fontWeight: '800', fontSize: '1.2rem', letterSpacing: '-0.5px' }}>TaxAnalyzer</span>
             </div>
 
+            {/* Links Section */}
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Link
-                    href="/payroll"
-                    className={isActive('/payroll') ? 'btn-primary' : ''}
-                    style={{
-                        color: isActive('/payroll') ? 'white' : 'var(--text-muted)',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.5rem',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    📊 Upload
-                </Link>
-                <Link
-                    href="/admin"
-                    className={isActive('/admin') ? 'btn-primary' : ''}
-                    style={{
-                        color: isActive('/admin') ? 'white' : 'var(--text-muted)',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.5rem',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    👤 Employees
-                </Link>
-                <Link
-                    href="/reports"
-                    className={isActive('/reports') ? 'btn-primary' : ''}
-                    style={{
-                        color: isActive('/reports') ? 'white' : 'var(--text-muted)',
-                        textDecoration: 'none',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.5rem',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    📑 Reports
-                </Link>
+                {!isEmployeePortal ? (
+                    <>
+                        <Link href="/payroll" className={isActive('/payroll') ? 'btn-primary' : ''} style={linkStyle(isActive('/payroll'))}>
+                            📊 Upload
+                        </Link>
+                        <Link href="/admin" className={isActive('/admin') ? 'btn-primary' : ''} style={linkStyle(isActive('/admin'))}>
+                            👤 Employees
+                        </Link>
+                        <Link href="/reports" className={isActive('/reports') ? 'btn-primary' : ''} style={linkStyle(isActive('/reports'))}>
+                            📑 Reports
+                        </Link>
+                        <Link href="/analytics" className={isActive('/analytics') ? 'btn-primary' : ''} style={linkStyle(isActive('/analytics'))}>
+                            📈 Analytics
+                        </Link>
+                        <Link href="/approvals" className={isActive('/approvals') ? 'btn-primary' : ''} style={linkStyle(isActive('/approvals'))}>
+                            ✅ Approvals
+                        </Link>
+                        <Link href="/tax-projection" className={isActive('/tax-projection') ? 'btn-primary' : ''} style={linkStyle(isActive('/tax-projection'))}>
+                            ⚖️ Asses Tax
+                        </Link>
+                        <Link href="/audit" className={isActive('/audit') ? 'btn-primary' : ''} style={linkStyle(isActive('/audit'))}>
+                            🛡️ Audit
+                        </Link>
+                    </>
+                ) : (
+                    <>
+                        <Link href="/portal" className={isActive('/portal') ? 'btn-primary' : ''} style={linkStyle(isActive('/portal'))}>
+                            🏠 My Dashboard
+                        </Link>
+                        <Link href="/portal/payslips" className={isActive('/portal/payslips') ? 'btn-primary' : ''} style={linkStyle(isActive('/portal/payslips'))}>
+                            📄 Payslips
+                        </Link>
+                        <Link href="/portal/tax-projection" className={isActive('/portal/tax-projection') ? 'btn-primary' : ''} style={linkStyle(isActive('/portal/tax-projection'))}>
+                            ⚖️ Form 16
+                        </Link>
+                    </>
+                )}
             </div>
 
             <div>

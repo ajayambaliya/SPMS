@@ -1,4 +1,16 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+
 export default function Footer() {
+    const pathname = usePathname();
+    const isEmployeePortal = pathname?.startsWith('/portal');
+
+    // Hide footer entirely on the employee portal to ensure a clean mobile app-like experience
+    if (isEmployeePortal) {
+        return null;
+    }
+
     return (
         <footer style={{
             position: 'fixed',
