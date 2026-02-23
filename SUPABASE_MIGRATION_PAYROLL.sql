@@ -71,6 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_payroll_name ON public.payroll_records(name);
 ALTER TABLE public.payroll_records ENABLE ROW LEVEL SECURITY;
 
 -- === POLICY: Allow authenticated users full access ===
+DROP POLICY IF EXISTS "Allow authenticated access" ON public.payroll_records;
 CREATE POLICY "Allow authenticated access" ON public.payroll_records 
   FOR ALL USING (auth.role() = 'authenticated');
 
@@ -83,6 +84,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_payroll_records_updated_at ON public.payroll_records;
 CREATE TRIGGER update_payroll_records_updated_at
   BEFORE UPDATE ON public.payroll_records
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

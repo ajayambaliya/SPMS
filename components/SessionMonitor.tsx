@@ -22,22 +22,22 @@ export default function SessionMonitor() {
 
     // Check session validity
     const checkSession = useCallback(async () => {
-        // Skip check on login page
-        if (pathname === '/') return;
+        // Skip check on login pages
+        if (pathname === '/' || pathname === '/portal/login') return;
 
         // Check if session has expired
         if (SessionManager.isSessionExpired()) {
-            // Clear session and redirect to login
+            // Clear session and redirect to appropriate login page
             await supabase.auth.signOut();
             SessionManager.clearSession();
-            router.push('/?session_expired=true');
+            router.push(pathname.startsWith('/portal') ? '/portal/login?session_expired=true' : '/?session_expired=true');
             return;
         }
 
         // Verify with Supabase
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session && pathname !== '/') {
-            router.push('/');
+        if (!session) {
+            router.push(pathname.startsWith('/portal') ? '/portal/login' : '/');
         }
     }, [pathname, router, supabase]);
 
