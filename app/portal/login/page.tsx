@@ -76,7 +76,7 @@ export default function EmployeeLoginPage() {
                     }}>
                         🏢
                     </div>
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>Employee Portal</h1>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>SPMS Employee Portal</h1>
                     <p style={{ color: 'var(--text-muted)' }}>Secure Self-Service Access</p>
                 </div>
 

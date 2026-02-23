@@ -52,9 +52,9 @@ export default function Navbar() {
                     fontSize: '1.2rem',
                     color: 'white'
                 }}>
-                    T
+                    S
                 </div>
-                <span style={{ fontWeight: '800', fontSize: '1.2rem', letterSpacing: '-0.5px' }}>TaxAnalyzer</span>
+                <span style={{ fontWeight: '800', fontSize: '1.2rem', letterSpacing: '-0.5px' }}>SPMS</span>
             </div>
 
             {/* Links Section */}
