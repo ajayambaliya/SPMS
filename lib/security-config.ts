@@ -69,9 +69,8 @@ export const SecurityConfig = {
 
     // Allowed origins for CORS (for future API implementation)
     ALLOWED_ORIGINS: [
+        'https://spms-ochre.vercel.app',
         'http://localhost:3000',
-        'https://localhost:3000',
-        // Add production domains here
     ],
 
     // Content Security Policy

@@ -25,6 +25,9 @@ export default function SessionMonitor() {
         // Skip check on login pages
         if (pathname === '/' || pathname === '/portal/login') return;
 
+        // Skip session boot if we are actively exchanging a Magic Link PKCE code
+        if (typeof window !== 'undefined' && window.location.search.includes('code=')) return;
+
         // Check if session has expired
         if (SessionManager.isSessionExpired()) {
             // Clear session and redirect to appropriate login page
