@@ -35,7 +35,7 @@ export default function EmployeeLoginPage() {
             const { error: signInError } = await supabase.auth.signInWithOtp({
                 email: email,
                 options: {
-                    emailRedirectTo: `https://spms-ochre.vercel.app/portal`
+                    emailRedirectTo: `https://spms-ochre.vercel.app/auth/callback?next=/portal`
                 }
             });
 
