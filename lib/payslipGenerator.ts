@@ -252,7 +252,7 @@ export const generatePayslipPDF = (record: any, employee: any) => {
     );
     doc.setFontSize(7);
     doc.text(
-        `Generated securely via AI Tax Analyzer | Data verified from Karmyogi Portal (${monthStr})`,
+        `Data verified from Karmyogi Portal (${monthStr})`,
         pageWidth / 2,
         pageHeight - 33,
         { align: 'center' }

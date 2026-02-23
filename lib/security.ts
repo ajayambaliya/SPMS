@@ -1,5 +1,5 @@
 /**
- * Security utilities for IT Tax Analyzer
+ * Security utilities for SPMS (Smart Payroll Management System)
  * Implements enterprise-grade security measures for sensitive tax data
  */
 

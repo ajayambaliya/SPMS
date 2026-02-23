@@ -24,6 +24,14 @@ export interface TaxOutput {
     healthAndEducationCess: number;
     totalTaxLiability: number;
     regimeName: string;
+    // Breakdown for Form 16
+    hraExemption: number;
+    professionalTax: number;
+    homeLoanInterest: number;
+    section80C: number;
+    section80CCD1B: number;
+    section80D: number;
+    otherDeductions: number;
 }
 
 export const calculateOldRegime = (input: TaxInput): TaxOutput => {
@@ -94,7 +102,15 @@ export const calculateOldRegime = (input: TaxInput): TaxOutput => {
         taxAfterRebate: taxAfterRebate,
         healthAndEducationCess: cess,
         totalTaxLiability: totalTax,
-        regimeName: "Old Tax Regime"
+        regimeName: "Old Tax Regime",
+        // Breakdown
+        hraExemption: hraAllowable,
+        professionalTax: profTax,
+        homeLoanInterest: homeLoanRelief,
+        section80C: sec80C,
+        section80CCD1B: sec80CCD1B,
+        section80D: sec80D,
+        otherDeductions: others
     };
 };
 
@@ -169,6 +185,14 @@ export const calculateNewRegime = (input: TaxInput): TaxOutput => {
         taxAfterRebate: taxAfterRebate,
         healthAndEducationCess: cess,
         totalTaxLiability: totalTax,
-        regimeName: "New Tax Regime"
+        regimeName: "New Tax Regime",
+        // Breakdown
+        hraExemption: 0,
+        professionalTax: 0,
+        homeLoanInterest: 0,
+        section80C: 0,
+        section80CCD1B: 0,
+        section80D: 0,
+        otherDeductions: 0
     };
 };

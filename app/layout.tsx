@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 
 
 export const metadata: Metadata = {
-  title: "IT Tax Analyzer",
-  description: "Advanced Tax Analysis and Reporting",
+  title: "SPMS - Smart Payroll Management System",
+  description: "Smart Payroll Management System by Ajay Ambaliya",
 };
 
 export default function RootLayout({

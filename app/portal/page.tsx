@@ -11,10 +11,19 @@ export default function EmployeeDashboard() {
     const supabase = createClient();
 
     useEffect(() => {
+        let authSubscription: any;
+
         const fetchSessionAndData = async () => {
+            // Check for PKCE flow - usually means we are actively exchanging code for session in background
+            const isExchangingCode = typeof window !== 'undefined' && window.location.search.includes('code=');
+
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
             if (sessionError || !session) {
+                if (isExchangingCode) {
+                    // Just wait. Supabase is doing its thing. `onAuthStateChange` will fire shortly.
+                    return;
+                }
                 router.push('/portal/login');
                 return;
             }
@@ -39,6 +48,23 @@ export default function EmployeeDashboard() {
         };
 
         fetchSessionAndData();
+
+        // Listen for when Supabase finishes exchanging the code for a session
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (event === 'SIGNED_IN') {
+                    fetchSessionAndData();
+                }
+            }
+        );
+
+        authSubscription = authListener.subscription;
+
+        return () => {
+            if (authSubscription) {
+                authSubscription.unsubscribe();
+            }
+        };
     }, [router, supabase]);
 
     if (loading) {

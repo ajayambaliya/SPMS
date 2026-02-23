@@ -200,7 +200,7 @@ export default function EmployeeTaxProjectionPage() {
 
         // Always download best regime representation
         const bestRegime = oldTax.totalTaxLiability < newTax.totalTaxLiability ? oldTax : newTax;
-        generateForm16PDF(bestRegime, employee, financialYear);
+        generateForm16PDF(bestRegime, employee, financialYear, monthsAnalyzed);
     };
 
     const formatCurrency = (val: number) => {

@@ -40,6 +40,9 @@ export default function LoginPage() {
 
         // Check if already logged in
         const checkSession = async () => {
+            // If exchanging code from magic link, skip immediate redirect
+            const isExchangingCode = typeof window !== 'undefined' && window.location.search.includes('code=');
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 // Check if session is expired
@@ -50,12 +53,30 @@ export default function LoginPage() {
                     SessionManager.updateActivity();
                     router.push('/payroll');
                 }
+            } else if (isExchangingCode) {
+                // Just wait. Supabase is doing its thing. `onAuthStateChange` will fire shortly.
+                return;
             }
         };
         checkSession();
 
+        // Listen for when Supabase finishes exchanging the code for a session
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (event === 'SIGNED_IN') {
+                    checkSession();
+                }
+            }
+        );
+
         // Check lockout status
         updateLockoutStatus();
+
+        return () => {
+            if (authListener && authListener.subscription) {
+                authListener.subscription.unsubscribe();
+            }
+        };
     }, [router, supabase]);
 
     // Update lockout status
@@ -227,10 +248,10 @@ export default function LoginPage() {
                         WebkitTextFillColor: 'transparent',
                         letterSpacing: '-0.5px'
                     }}>
-                        IT Tax Analyzer
+                        SPMS
                     </h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                        Advanced Tax Analysis and Reporting
+                        Smart Payroll Management System by Ajay Ambaliya
                     </p>
                 </div>
 
