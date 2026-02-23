@@ -35,8 +35,7 @@ export default function EmployeeLoginPage() {
             const { error: signInError } = await supabase.auth.signInWithOtp({
                 email: email,
                 options: {
-                    shouldCreateUser: true, // Allow Supabase to create the auth user if this is their first time logging in
-                    emailRedirectTo: `${window.location.origin}/portal`
+                    emailRedirectTo: `https://spms-ochre.vercel.app/portal`
                 }
             });
 
